@@ -23,11 +23,10 @@ def login():
             flash('Your account has been deactivated. Please contact an administrator.', 'danger')
             return redirect(url_for('auth.login'))
         
-        # Update last login time
-        user.last_login = datetime.utcnow()
-        db.session.commit()
-        
+        # Log in the user and update last login time
         login_user(user, remember=form.remember_me.data)
+        user.update_last_login()
+        db.session.commit()
         next_page = request.args.get('next')
         if not next_page or url_parse(next_page).netloc != '':
             next_page = url_for('main.index')

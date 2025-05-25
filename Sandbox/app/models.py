@@ -38,12 +38,16 @@ class User(UserMixin, db.Model):
     first_name = db.Column(db.String(64))
     last_name = db.Column(db.String(64))
     is_admin = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    last_login = db.Column(db.DateTime)
-    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    last_login = db.Column(db.DateTime, nullable=True, index=True)
+    is_active = db.Column(db.Boolean, nullable=False, default=True, server_default='1')
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
+        
+    def update_last_login(self):
+        """Update the last login timestamp"""
+        self.last_login = datetime.utcnow()
     
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
