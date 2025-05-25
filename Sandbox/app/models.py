@@ -39,12 +39,20 @@ class User(UserMixin, db.Model):
     last_name = db.Column(db.String(64))
     is_admin = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_login = db.Column(db.DateTime)
+    is_active = db.Column(db.Boolean, default=True)
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
     
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    
+    def get_full_name(self):
+        """Return the user's full name or username if no name is set"""
+        if self.first_name and self.last_name:
+            return f"{self.first_name} {self.last_name}"
+        return self.username
     
     def __repr__(self):
         return f'<User {self.username}>'
