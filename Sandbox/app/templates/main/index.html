@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <!-- Order Statistics -->
+    <div class="col-md-3 mb-4">
+        <div class="card card-dashboard h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-muted mb-0">Pending Orders</h6>
+                        <h2 class="my-2">{{ order_counts.pending }}</h2>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 p-3 rounded">
+                        <i class="fas fa-clock fa-2x text-primary"></i>
+                    </div>
+                </div>
+                <p class="card-text"><a href="{{ url_for('orders.index') }}" class="text-decoration-none">View all orders</a></p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card card-dashboard h-100" style="border-left-color: #fd7e14;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-muted mb-0">In Production</h6>
+                        <h2 class="my-2">{{ order_counts.in_production }}</h2>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 p-3 rounded">
+                        <i class="fas fa-print fa-2x text-warning"></i>
+                    </div>
+                </div>
+                <p class="card-text"><a href="{{ url_for('production.index') }}" class="text-decoration-none">Production dashboard</a></p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card card-dashboard h-100" style="border-left-color: #198754;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-muted mb-0">Completed Orders</h6>
+                        <h2 class="my-2">{{ order_counts.completed }}</h2>
+                    </div>
+                    <div class="bg-success bg-opacity-10 p-3 rounded">
+                        <i class="fas fa-check-circle fa-2x text-success"></i>
+                    </div>
+                </div>
+                <p class="card-text"><a href="{{ url_for('orders.index') }}" class="text-decoration-none">View all orders</a></p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card card-dashboard h-100" style="border-left-color: #dc3545;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-muted mb-0">Overdue Invoices</h6>
+                        <h2 class="my-2">{{ overdue_invoices }}</h2>
+                    </div>
+                    <div class="bg-danger bg-opacity-10 p-3 rounded">
+                        <i class="fas fa-exclamation-circle fa-2x text-danger"></i>
+                    </div>
+                </div>
+                <p class="card-text"><a href="{{ url_for('invoicing.list_invoices') }}?status=OVERDUE" class="text-decoration-none">View overdue invoices</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Production Statistics -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Production Status</h5>
+                <a href="{{ url_for('production.index') }}" class="btn btn-sm btn-outline-primary">View Production</a>
+            </div>
+            <div class="card-body">
+                <canvas id="productionChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <a href="{{ url_for('orders.create_quote') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-file-invoice-dollar me-2"></i> Create Quote
+                    </a>
+                    <a href="{{ url_for('orders.create_order') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-clipboard-list me-2"></i> Create Order
+                    </a>
+                    <a href="{{ url_for('orders.customers') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-users me-2"></i> Manage Customers
+                    </a>
+                    <a href="{{ url_for('production.schedule') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-calendar-alt me-2"></i> Production Schedule
+                    </a>
+                    <a href="{{ url_for('invoicing.reports') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-chart-bar me-2"></i> Financial Reports
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Orders -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Orders</h5>
+                <a href="{{ url_for('orders.index') }}" class="btn btn-sm btn-outline-primary">View All Orders</a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Order #</th>
+                                <th>Customer</th>
+                                <th>Date</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                                <th>Total</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in recent_orders %}
+                            <tr>
+                                <td>{{ order.order_number }}</td>
+                                <td>{{ order.customer.name }}</td>
+                                <td>{{ order.created_at.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ order.due_date.strftime('%Y-%m-%d') if order.due_date else 'N/A' }}</td>
+                                <td>
+                                    <span class="badge {% if order.status.value == 'Pending' %}bg-warning
+                                          {% elif order.status.value == 'Approved' %}bg-info
+                                          {% elif order.status.value == 'In Production' %}bg-primary
+                                          {% elif order.status.value == 'Completed' %}bg-success
+                                          {% elif order.status.value == 'Delivered' %}bg-dark
+                                          {% elif order.status.value == 'Cancelled' %}bg-danger
+                                          {% else %}bg-secondary{% endif %}">
+                                          {{ order.status.value }}
+                                    </span>
+                                </td>
+                                <td>${{ order.total_amount|round(2) }}</td>
+                                <td>
+                                    <a href="{{ url_for('orders.view_order', id=order.id) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Production Status Chart
+        var ctx = document.getElementById('productionChart').getContext('2d');
+        var productionChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Pending', 'Prepress', 'Press', 'Postpress', 'Quality Check'],
+                datasets: [{
+                    label: 'Jobs',
+                    data: [
+                        {{ job_counts.pending }}, 
+                        {{ job_counts.prepress }}, 
+                        {{ job_counts.press }}, 
+                        {{ job_counts.postpress }}, 
+                        {{ job_counts.quality_check }}
+                    ],
+                    backgroundColor: [
+                        'rgba(255, 193, 7, 0.5)', // Pending
+                        'rgba(13, 110, 253, 0.5)', // Prepress
+                        'rgba(220, 53, 69, 0.5)',  // Press
+                        'rgba(25, 135, 84, 0.5)',  // Postpress
+                        'rgba(102, 16, 242, 0.5)'  // Quality Check
+                    ],
+                    borderColor: [
+                        'rgba(255, 193, 7, 1)',
+                        'rgba(13, 110, 253, 1)',
+                        'rgba(220, 53, 69, 1)',
+                        'rgba(25, 135, 84, 1)',
+                        'rgba(102, 16, 242, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

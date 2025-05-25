@@ -1,0 +1,355 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between mb-4">
+    <div>
+        <a href="{{ url_for('production.schedule') }}" class="btn btn-primary">
+            <i class="fas fa-calendar-alt"></i> View Schedule
+        </a>
+        <a href="{{ url_for('production.reports') }}" class="btn btn-outline-primary">
+            <i class="fas fa-chart-bar"></i> Reports
+        </a>
+    </div>
+    <div>
+        <a href="{{ url_for('production.materials') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-boxes"></i> Inventory
+        </a>
+    </div>
+</div>
+
+<!-- Production Workflow Kanban Board -->
+<div class="row">
+    <!-- Pending Jobs -->
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header bg-warning bg-opacity-25">
+                <h5 class="mb-0">
+                    <i class="fas fa-clock me-2"></i> Pending
+                    <span class="badge bg-warning text-dark ms-2">{{ pending_jobs|length }}</span>
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for job in pending_jobs %}
+                    <div class="list-group-item p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <strong>{{ job.job_number }}</strong>
+                            <a href="{{ url_for('production.view_job', id=job.id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </div>
+                        <p class="mb-1">
+                            <small class="text-muted">Order: {{ job.order.order_number }}</small>
+                        </p>
+                        <p class="mb-1">{{ job.product.name if job.product else 'Custom Job' }}</p>
+                        <p class="mb-1">Qty: {{ job.quantity }}</p>
+                        {% if job.due_date %}
+                        <p class="mb-0 text-danger">
+                            <i class="fas fa-calendar-day"></i> Due: {{ job.due_date.strftime('%Y-%m-%d') }}
+                        </p>
+                        {% endif %}
+                        <div class="mt-2">
+                            <a href="{{ url_for('production.schedule_job', id=job.id) }}" class="btn btn-sm btn-primary">
+                                Schedule
+                            </a>
+                            <a href="{{ url_for('production.update_job_status', id=job.id) }}" class="btn btn-sm btn-outline-secondary">
+                                Change Status
+                            </a>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="list-group-item p-3 text-center text-muted">
+                        No pending jobs
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Active Production Jobs -->
+    <div class="col-md-8 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary bg-opacity-25">
+                <h5 class="mb-0">
+                    <i class="fas fa-print me-2"></i> Active Production
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="accordion" id="productionAccordion">
+                    <!-- Prepress Jobs -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="prepressHeading">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#prepressCollapse" aria-expanded="true" aria-controls="prepressCollapse">
+                                Prepress <span class="badge bg-primary ms-2">{{ prepress_jobs|length }}</span>
+                            </button>
+                        </h2>
+                        <div id="prepressCollapse" class="accordion-collapse collapse show" aria-labelledby="prepressHeading">
+                            <div class="accordion-body p-0">
+                                <div class="list-group list-group-flush">
+                                    {% for job in prepress_jobs %}
+                                    <div class="list-group-item p-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <strong>{{ job.job_number }}</strong>
+                                            <a href="{{ url_for('production.view_job', id=job.id) }}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </div>
+                                        <p class="mb-1">
+                                            <small class="text-muted">Order: {{ job.order.order_number }}</small>
+                                        </p>
+                                        <p class="mb-1">{{ job.product.name if job.product else 'Custom Job' }}</p>
+                                        <p class="mb-1">Customer: {{ job.order.customer.name }}</p>
+                                        {% if job.due_date %}
+                                        <p class="mb-0 {% if job.due_date < now %}text-danger{% endif %}">
+                                            <i class="fas fa-calendar-day"></i> Due: {{ job.due_date.strftime('%Y-%m-%d') }}
+                                        </p>
+                                        {% endif %}
+                                        <div class="mt-2">
+                                            <a href="{{ url_for('production.update_job_status', id=job.id) }}" class="btn btn-sm btn-primary">
+                                                Update Status
+                                            </a>
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <div class="list-group-item p-3 text-center text-muted">
+                                        No jobs in prepress
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Press Jobs -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="pressHeading">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#pressCollapse" aria-expanded="false" aria-controls="pressCollapse">
+                                Press <span class="badge bg-primary ms-2">{{ press_jobs|length }}</span>
+                            </button>
+                        </h2>
+                        <div id="pressCollapse" class="accordion-collapse collapse" aria-labelledby="pressHeading">
+                            <div class="accordion-body p-0">
+                                <div class="list-group list-group-flush">
+                                    {% for job in press_jobs %}
+                                    <div class="list-group-item p-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <strong>{{ job.job_number }}</strong>
+                                            <a href="{{ url_for('production.view_job', id=job.id) }}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </div>
+                                        <p class="mb-1">
+                                            <small class="text-muted">Order: {{ job.order.order_number }}</small>
+                                        </p>
+                                        <p class="mb-1">{{ job.product.name if job.product else 'Custom Job' }}</p>
+                                        <p class="mb-1">Customer: {{ job.order.customer.name }}</p>
+                                        {% if job.due_date %}
+                                        <p class="mb-0 {% if job.due_date < now %}text-danger{% endif %}">
+                                            <i class="fas fa-calendar-day"></i> Due: {{ job.due_date.strftime('%Y-%m-%d') }}
+                                        </p>
+                                        {% endif %}
+                                        <div class="mt-2">
+                                            <a href="{{ url_for('production.update_job_status', id=job.id) }}" class="btn btn-sm btn-primary">
+                                                Update Status
+                                            </a>
+                                            <a href="{{ url_for('production.material_usage', id=job.id) }}" class="btn btn-sm btn-outline-secondary">
+                                                Record Materials
+                                            </a>
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <div class="list-group-item p-3 text-center text-muted">
+                                        No jobs in press
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Postpress Jobs -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="postpressHeading">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#postpressCollapse" aria-expanded="false" aria-controls="postpressCollapse">
+                                Postpress <span class="badge bg-primary ms-2">{{ postpress_jobs|length }}</span>
+                            </button>
+                        </h2>
+                        <div id="postpressCollapse" class="accordion-collapse collapse" aria-labelledby="postpressHeading">
+                            <div class="accordion-body p-0">
+                                <div class="list-group list-group-flush">
+                                    {% for job in postpress_jobs %}
+                                    <div class="list-group-item p-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <strong>{{ job.job_number }}</strong>
+                                            <a href="{{ url_for('production.view_job', id=job.id) }}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </div>
+                                        <p class="mb-1">
+                                            <small class="text-muted">Order: {{ job.order.order_number }}</small>
+                                        </p>
+                                        <p class="mb-1">{{ job.product.name if job.product else 'Custom Job' }}</p>
+                                        <p class="mb-1">Customer: {{ job.order.customer.name }}</p>
+                                        {% if job.due_date %}
+                                        <p class="mb-0 {% if job.due_date < now %}text-danger{% endif %}">
+                                            <i class="fas fa-calendar-day"></i> Due: {{ job.due_date.strftime('%Y-%m-%d') }}
+                                        </p>
+                                        {% endif %}
+                                        <div class="mt-2">
+                                            <a href="{{ url_for('production.update_job_status', id=job.id) }}" class="btn btn-sm btn-primary">
+                                                Update Status
+                                            </a>
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <div class="list-group-item p-3 text-center text-muted">
+                                        No jobs in postpress
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Quality Check Jobs -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="qcHeading">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#qcCollapse" aria-expanded="false" aria-controls="qcCollapse">
+                                Quality Check <span class="badge bg-primary ms-2">{{ qc_jobs|length }}</span>
+                            </button>
+                        </h2>
+                        <div id="qcCollapse" class="accordion-collapse collapse" aria-labelledby="qcHeading">
+                            <div class="accordion-body p-0">
+                                <div class="list-group list-group-flush">
+                                    {% for job in qc_jobs %}
+                                    <div class="list-group-item p-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <strong>{{ job.job_number }}</strong>
+                                            <a href="{{ url_for('production.view_job', id=job.id) }}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </div>
+                                        <p class="mb-1">
+                                            <small class="text-muted">Order: {{ job.order.order_number }}</small>
+                                        </p>
+                                        <p class="mb-1">{{ job.product.name if job.product else 'Custom Job' }}</p>
+                                        <p class="mb-1">Customer: {{ job.order.customer.name }}</p>
+                                        {% if job.due_date %}
+                                        <p class="mb-0 {% if job.due_date < now %}text-danger{% endif %}">
+                                            <i class="fas fa-calendar-day"></i> Due: {{ job.due_date.strftime('%Y-%m-%d') }}
+                                        </p>
+                                        {% endif %}
+                                        <div class="mt-2">
+                                            <a href="{{ url_for('production.quality_check', id=job.id) }}" class="btn btn-sm btn-success">
+                                                Quality Check
+                                            </a>
+                                            <a href="{{ url_for('production.complete_job', id=job.id) }}" class="btn btn-sm btn-outline-success">
+                                                Complete
+                                            </a>
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <div class="list-group-item p-3 text-center text-muted">
+                                        No jobs in quality check
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Production Metrics -->
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Jobs Due This Week</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="weeklyJobsChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Production Efficiency</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="efficiencyChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // This week's jobs chart
+        var weeklyCtx = document.getElementById('weeklyJobsChart').getContext('2d');
+        var weeklyJobsChart = new Chart(weeklyCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+                datasets: [{
+                    label: 'Jobs Due',
+                    data: [3, 5, 2, 4, 6],
+                    backgroundColor: 'rgba(13, 110, 253, 0.5)',
+                    borderColor: 'rgba(13, 110, 253, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Efficiency chart
+        var efficiencyCtx = document.getElementById('efficiencyChart').getContext('2d');
+        var efficiencyChart = new Chart(efficiencyCtx, {
+            type: 'line',
+            data: {
+                labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                datasets: [{
+                    label: 'Estimated Hours',
+                    data: [40, 45, 38, 42],
+                    borderColor: 'rgba(13, 110, 253, 1)',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    borderWidth: 2,
+                    fill: true
+                }, {
+                    label: 'Actual Hours',
+                    data: [42, 43, 35, 38],
+                    borderColor: 'rgba(220, 53, 69, 1)',
+                    backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                    borderWidth: 2,
+                    fill: true
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

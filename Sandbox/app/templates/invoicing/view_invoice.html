@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between mb-4">
+    <div>
+        <a href="{{ url_for('invoicing.list_invoices') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Invoices
+        </a>
+    </div>
+    <div>
+        {% if invoice.status.name == 'DRAFT' %}
+        <a href="{{ url_for('invoicing.mark_sent', id=invoice.id) }}" class="btn btn-primary">
+            <i class="fas fa-paper-plane"></i> Mark as Sent
+        </a>
+        <a href="{{ url_for('invoicing.edit_invoice', id=invoice.id) }}" class="btn btn-outline-primary">
+            <i class="fas fa-edit"></i> Edit
+        </a>
+        {% elif invoice.status.name == 'SENT' %}
+        <a href="{{ url_for('invoicing.record_payment', id=invoice.id) }}" class="btn btn-success">
+            <i class="fas fa-dollar-sign"></i> Record Payment
+        </a>
+        <a href="{{ url_for('invoicing.mark_overdue', id=invoice.id) }}" class="btn btn-warning">
+            <i class="fas fa-exclamation-triangle"></i> Mark as Overdue
+        </a>
+        <a href="{{ url_for('invoicing.edit_invoice', id=invoice.id) }}" class="btn btn-outline-primary">
+            <i class="fas fa-edit"></i> Edit
+        </a>
+        {% elif invoice.status.name == 'OVERDUE' %}
+        <a href="{{ url_for('invoicing.record_payment', id=invoice.id) }}" class="btn btn-success">
+            <i class="fas fa-dollar-sign"></i> Record Payment
+        </a>
+        <a href="{{ url_for('invoicing.edit_invoice', id=invoice.id) }}" class="btn btn-outline-primary">
+            <i class="fas fa-edit"></i> Edit
+        </a>
+        {% endif %}
+        
+        {% if invoice.status.name in ['DRAFT', 'SENT', 'OVERDUE'] %}
+        <a href="{{ url_for('invoicing.cancel_invoice', id=invoice.id) }}" class="btn btn-outline-danger" 
+           onclick="return confirm('Are you sure you want to cancel this invoice?');">
+            <i class="fas fa-times"></i> Cancel Invoice
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Invoice Details Card -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Invoice #{{ invoice.invoice_number }}</h5>
+                <span class="badge {% if invoice.status.value == 'Draft' %}bg-secondary
+                      {% elif invoice.status.value == 'Sent' %}bg-primary
+                      {% elif invoice.status.value == 'Paid' %}bg-success
+                      {% elif invoice.status.value == 'Overdue' %}bg-danger
+                      {% elif invoice.status.value == 'Cancelled' %}bg-dark
+                      {% endif %} fs-6">
+                      {{ invoice.status.value }}
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- Left Column - Invoice Details -->
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Invoice Details</h6>
+                        <dl class="row">
+                            <dt class="col-sm-4">Invoice Number:</dt>
+                            <dd class="col-sm-8">{{ invoice.invoice_number }}</dd>
+                            
+                            <dt class="col-sm-4">Invoice Date:</dt>
+                            <dd class="col-sm-8">{{ invoice.created_at.strftime('%Y-%m-%d') }}</dd>
+                            
+                            <dt class="col-sm-4">Due Date:</dt>
+                            <dd class="col-sm-8">{{ invoice.due_date.strftime('%Y-%m-%d') }}</dd>
+                            
+                            <dt class="col-sm-4">Order Number:</dt>
+                            <dd class="col-sm-8">
+                                <a href="{{ url_for('orders.view_order', id=invoice.order.id) }}">
+                                    {{ invoice.order.order_number }}
+                                </a>
+                            </dd>
+                        </dl>
+                    </div>
+                    
+                    <!-- Right Column - Customer Details -->
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Customer</h6>
+                        <dl class="row">
+                            <dt class="col-sm-4">Name:</dt>
+                            <dd class="col-sm-8">{{ invoice.order.customer.name }}</dd>
+                            
+                            <dt class="col-sm-4">Contact:</dt>
+                            <dd class="col-sm-8">{{ invoice.order.customer.contact_person }}</dd>
+                            
+                            <dt class="col-sm-4">Email:</dt>
+                            <dd class="col-sm-8">{{ invoice.order.customer.email }}</dd>
+                            
+                            <dt class="col-sm-4">Phone:</dt>
+                            <dd class="col-sm-8">{{ invoice.order.customer.phone }}</dd>
+                            
+                            <dt class="col-sm-4">Address:</dt>
+                            <dd class="col-sm-8">
+                                {{ invoice.order.customer.address }}<br>
+                                {{ invoice.order.customer.city }}, {{ invoice.order.customer.state }} {{ invoice.order.customer.postal_code }}<br>
+                                {{ invoice.order.customer.country }}
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <!-- Jobs Table -->
+                <h6 class="text-muted mb-3">Order Details</h6>
+                <div class="table-responsive mb-4">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Job #</th>
+                                <th>Product</th>
+                                <th>Description</th>
+                                <th>Quantity</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for job in invoice.order.jobs %}
+                            <tr>
+                                <td>{{ job.job_number }}</td>
+                                <td>{{ job.product.name if job.product else 'Custom Job' }}</td>
+                                <td>
+                                    {% if job.width and job.height %}
+                                    {{ job.width }}mm x {{ job.height }}mm
+                                    {% endif %}
+                                    {% if job.pages %}
+                                    {{ job.pages }} pages
+                                    {% endif %}
+                                    {% if job.colors %}
+                                    {{ job.colors }} colors
+                                    {% endif %}
+                                    {% if job.paper_type %}
+                                    on {{ job.paper_type }}
+                                    {% endif %}
+                                </td>
+                                <td>{{ job.quantity }}</td>
+                                <td>
+                                    <span class="badge {% if job.status.value == 'Pending' %}bg-warning text-dark
+                                          {% elif job.status.value == 'Prepress' %}bg-info text-dark
+                                          {% elif job.status.value == 'Press' %}bg-primary
+                                          {% elif job.status.value == 'Postpress' %}bg-primary
+                                          {% elif job.status.value == 'Quality Check' %}bg-secondary
+                                          {% elif job.status.value == 'Completed' %}bg-success
+                                          {% endif %}">
+                                          {{ job.status.value }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Invoice Amounts -->
+                <div class="row">
+                    <div class="col-md-6">
+                        {% if invoice.notes %}
+                        <h6 class="text-muted">Notes</h6>
+                        <p>{{ invoice.notes }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Subtotal:</span>
+                                    <span>${{ invoice.amount|round(2) }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Tax:</span>
+                                    <span>${{ invoice.tax_amount|round(2) }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Total:</span>
+                                    <span class="fw-bold">${{ invoice.total_amount|round(2) }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Amount Paid:</span>
+                                    <span class="text-success">${{ total_paid|round(2) }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="fw-bold">Balance Due:</span>
+                                    <span class="fw-bold {% if balance_due > 0 %}text-danger{% else %}text-success{% endif %}">${{ balance_due|round(2) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payments Card -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Payment History</h5>
+                {% if invoice.status.name in ['SENT', 'OVERDUE'] %}
+                <a href="{{ url_for('invoicing.record_payment', id=invoice.id) }}" class="btn btn-sm btn-success">
+                    <i class="fas fa-plus"></i> Record Payment
+                </a>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if payments %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Amount</th>
+                                <th>Method</th>
+                                <th>Reference</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for payment in payments %}
+                            <tr>
+                                <td>{{ payment.payment_date.strftime('%Y-%m-%d') }}</td>
+                                <td class="text-success">${{ payment.amount|round(2) }}</td>
+                                <td>{{ payment.payment_method|title }}</td>
+                                <td>{{ payment.reference_number or 'N/A' }}</td>
+                                <td>{{ payment.notes or '' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-center text-muted py-4">No payments recorded yet</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
